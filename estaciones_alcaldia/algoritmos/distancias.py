@@ -2,10 +2,7 @@
 import heapq
 
 
-def distancias_desde(
-    grafo: dict[int, list[tuple[int, int]]],
-    origen: int
-) -> dict[int, int]:
+def distancias_desde(grafo: dict[int, list[tuple[int, int]]], origen: int) -> dict[int, int]:
     """
     Calcula la distancia mínima desde el origen hasta cada nodo alcanzable.
 
@@ -37,17 +34,12 @@ def distancias_desde(
             nueva_distancia: int = distancia_actual + longitud
 
             # Actualizamos si encontramos una ruta mejor.
-            if (
-                vecino not in distancias
-                or nueva_distancia < distancias[vecino]
-            ):
+            if (vecino not in distancias or nueva_distancia < distancias[vecino]):
+                
                 distancias[vecino] = nueva_distancia
 
                 # Añadimos la nueva posibilidad a la cola.
-                heapq.heappush(
-                    cola,
-                    (nueva_distancia, vecino)
-                )
+                heapq.heappush(cola,(nueva_distancia, vecino))
 
     # Los nodos inalcanzables no aparecen en el resultado.
     return distancias
