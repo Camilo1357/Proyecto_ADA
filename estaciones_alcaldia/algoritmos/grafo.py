@@ -1,7 +1,5 @@
 
-def construir_grafo(
-    filas_calles: list[dict[str, str]]
-) -> dict[int, list[tuple[int, int]]]:
+def construir_grafo(filas_calles: list[dict[str, str]]) -> dict[int, list[tuple[int, float]]]:
     """
     Convierte las filas de aristas.csv en un diccionario de adyacencia.
 
@@ -10,15 +8,17 @@ def construir_grafo(
     """
 
     # Diccionario donde cada nodo tendrá sus conexiones salientes.
-    grafo: dict[int, list[tuple[int, int]]] = {}
+    grafo: dict[int, list[tuple[int, float]]] = {}
 
     # Recorremos todas las filas del archivo de calles.
     for calle in filas_calles:
 
-        # Convertimos los textos del CSV en números enteros.
+        # Los identificadores de los nodos son números enteros.
         origen: int = int(calle["origen"])
         destino: int = int(calle["destino"])
-        distancia: int = int(calle["longitud_m"])
+
+        # Las longitudes pueden tener decimales.
+        distancia: float = float(calle["longitud_m"])
 
         # Creamos la lista de conexiones del origen si hace falta.
         if origen not in grafo:

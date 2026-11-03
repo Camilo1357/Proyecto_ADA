@@ -60,34 +60,52 @@ def calcular_cobertura(grafo: dict[int, list[tuple[int, int]]], nodo_estacion: i
     return incidentes_cubiertos
 
 
-def evaluar_lote(grafo: dict[int, list[tuple[int, int]]],lote: dict[str, str], parametros: dict[str, Any], incidentes: list[dict[str, str]]) -> dict[str, dict[str, Any]]:
+def evaluar_lote(grafo: dict[int, list[tuple[int, int]]],lote: dict[str, str],parametros: dict[str, Any],incidentes: list[dict[str, str]]) -> dict[str, dict[str, Any]]:
     """
     Evalúa los tres tipos de estación para un lote.
 
-    Devuelve, por tipo, el costo, el radio y los incidentes cubiertos.
+    Calcula las distancias una sola vez y las reutiliza
+    para evaluar los diferentes tipos de estación.
     """
 
-    # Extraemos el nodo y el factor de zona del lote.
     nodo_lote: int = int(lote["nodo"])
     factor_zona: float = float(lote["factor_zona"])
 
-    # Aquí guardaremos los resultados de cada tipo de estación.
+    # Una sola ejecución de Dijkstra para este lote.
+    distancias: dict[int, int] = distancias_desde(grafo, nodo_lote)
+
     resultados: dict[str, dict[str, Any]] = {}
 
-    # Recorremos los tipos definidos en parametros.json.
     for tipo, configuracion in parametros["tipos"].items():
 
-        # Calculamos el costo específico de esta estación y este lote.
-        costo: int = calcular_costo(factor_zona, int(configuracion["costo_base"]))
+        costo: int = calcular_costo(
+            factor_zona,
+            int(configuracion["costo_base"])
+        )
 
-        # Buscamos qué incidentes del tipo correcto quedan cubiertos.
-        cubiertos: list[int] = calcular_cobertura(grafo, nodo_lote, tipo, incidentes, int(configuracion["radio_m"]))
+        radio_m: int = int(configuracion["radio_m"])
 
-        # Guardamos la información para usarla en los algoritmos.
+        cubiertos: list[int] = []
+
+        # Reutilizamos las distancias para cada tipo.
+        for incidente in incidentes:
+
+            if incidente["tipo"] != tipo:
+                continue
+
+            id_incidente: int = int(incidente["id"])
+            nodo_incidente: int = int(incidente["nodo"])
+
+            if nodo_incidente not in distancias:
+                continue
+
+            if distancias[nodo_incidente] <= radio_m:
+                cubiertos.append(id_incidente)
+
         resultados[tipo] = {
             "estacion": configuracion["estacion"],
             "costo": costo,
-            "radio_m": int(configuracion["radio_m"]),
+            "radio_m": radio_m,
             "peso": int(configuracion["peso"]),
             "incidentes_cubiertos": cubiertos
         }
@@ -142,3 +160,35 @@ def calcular_valor_adicional(incidentes_cubiertos: set[int], incidentes_ya_cubie
 
     # Calculamos el valor únicamente de los incidentes nuevos.
     return calcular_valor(incidentes_nuevos,incidentes,parametros)
+
+
+def construir_valores_incidentes(incidentes: list[dict[str, str]],parametros: dict[str, Any]) -> dict[int, int]:
+    """
+    Construye un diccionario que relaciona cada ID de incidente
+    con su valor, según el tipo de incidente.
+    """
+
+    valores: dict[int, int] = {}
+
+    for incidente in incidentes:
+        id_incidente: int = int(incidente["id"])
+        tipo: str = incidente["tipo"]
+
+        peso: int = int(parametros["tipos"][tipo]["peso"])
+
+        valores[id_incidente] = peso
+
+    return valores
+
+def calcular_valor_rapido(incidentes_cubiertos: set[int],valores_incidentes: dict[int, int]) -> int:
+    """
+    Calcula el valor de los incidentes cubiertos consultando
+    directamente el diccionario de pesos.
+    """
+
+    valor_total: int = 0
+
+    for id_incidente in incidentes_cubiertos:
+        valor_total += valores_incidentes.get(id_incidente, 0)
+
+    return valor_total

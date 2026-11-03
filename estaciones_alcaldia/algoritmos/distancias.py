@@ -2,7 +2,7 @@
 import heapq
 
 
-def distancias_desde(grafo: dict[int, list[tuple[int, int]]], origen: int) -> dict[int, int]:
+def distancias_desde(grafo: dict[int, list[tuple[int, float]]],origen: int) -> dict[int, float]:
     """
     Calcula la distancia mínima desde el origen hasta cada nodo alcanzable.
 
@@ -13,13 +13,14 @@ def distancias_desde(grafo: dict[int, list[tuple[int, int]]], origen: int) -> di
     """
 
     # La distancia desde el origen hasta sí mismo es cero.
-    distancias: dict[int, int] = {origen: 0}
+    distancias: dict[int, float] = {origen: 0.0}
 
     # La cola de prioridad almacena pares (distancia, nodo).
-    cola: list[tuple[int, int]] = [(0, origen)]
+    cola: list[tuple[float, int]] = [(0.0, origen)]
 
     # Exploramos mientras haya caminos pendientes.
     while cola:
+
         # Extraemos el camino con menor distancia acumulada.
         distancia_actual, nodo_actual = heapq.heappop(cola)
 
@@ -30,16 +31,19 @@ def distancias_desde(grafo: dict[int, list[tuple[int, int]]], origen: int) -> di
         # Recorremos las conexiones que salen del nodo actual.
         for vecino, longitud in grafo[nodo_actual]:
 
-            # Calculamos la distancia al vecino pasando por el nodo actual.
-            nueva_distancia: int = distancia_actual + longitud
+            # Calculamos la distancia al vecino.
+            nueva_distancia: float = distancia_actual + longitud
 
             # Actualizamos si encontramos una ruta mejor.
-            if (vecino not in distancias or nueva_distancia < distancias[vecino]):
-                
+            if (
+                vecino not in distancias
+                or nueva_distancia < distancias[vecino]
+            ):
+
                 distancias[vecino] = nueva_distancia
 
                 # Añadimos la nueva posibilidad a la cola.
-                heapq.heappush(cola,(nueva_distancia, vecino))
+                heapq.heappush(cola, (nueva_distancia, vecino))
 
     # Los nodos inalcanzables no aparecen en el resultado.
     return distancias

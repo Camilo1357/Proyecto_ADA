@@ -1,225 +1,76 @@
 # Dónde construir: estaciones para una alcaldía nueva
 
-## 1. Objetivo
+## 1. Descripción del proyecto
 
-Seleccionar estaciones de atención de emergencias en lotes disponibles
-para maximizar el valor de los incidentes cubiertos sin exceder el
-presupuesto. El escenario usa una red vial de Medellín y datos simulados
-de incidentes, lotes, factores de zona y costos.
+Este proyecto busca determinar en qué lotes conviene construir estaciones de atención de incidentes para una alcaldía nueva, considerando un presupuesto limitado.
 
-La especificación oficial está en el [notebook del
-proyecto](https://github.com/callejohnathan/udem_analisis_y_diseno_de_algoritmos/blob/main/material_de_apoyo/proyectos_finales/20262_estaciones/practica_estaciones.ipynb).
-Si este resumen difiere de una versión posterior del notebook, prevalece
-el documento oficial.
+El objetivo es seleccionar estaciones que maximicen el valor de los incidentes cubiertos, respetando las restricciones de ubicación, tipo de estación y presupuesto.
 
-## 2. Datos de entrada
+El proyecto utiliza un grafo dirigido para representar la red vial y algoritmos de optimización para comparar diferentes estrategias de selección de estaciones.
 
-Cada instancia contiene:
+## 2. Objetivo
 
-  -----------------------------------------------------------------------
-  Archivo                             Contenido
-  ----------------------------------- -----------------------------------
-  `nodos.csv`                         Identificador, latitud y longitud
-                                      de cada nodo.
+Desarrollar y comparar tres algoritmos para seleccionar estaciones:
 
-  `aristas.csv`                       Tramos dirigidos: origen, destino,
-                                      longitud en metros y nombre de vía.
+1. Greedy base del profesor.
+2. Heurística propia basada en eficiencia.
+3. Algoritmo exacto mediante fuerza bruta con poda por presupuesto.
 
-  `lotes.csv`                         Código de lote, nodo asociado y
-                                      factor de zona.
+Se busca analizar la calidad de las soluciones, el costo, el tiempo de ejecución y las limitaciones de cada estrategia.
 
-  `incidentes.csv`                    ID, nodo, tipo y fecha/hora del
-                                      incidente.
+## 3. Datos de entrada
 
-  `parametros.json`                   Presupuesto y parámetros de cada
-                                      tipo de estación.
-  -----------------------------------------------------------------------
+El proyecto utiliza cuatro archivos de datos y un archivo de parámetros.
 
-Cada fila de `aristas.csv` representa un tramo dirigido. Una vía de
-doble sentido aparece como dos aristas, una en cada dirección. No se
-debe inferir que existe la arista inversa. El grafo es dirigido y
-ponderado por `longitud_m`.
+| Archivo | Contenido |
+|---|---|
+| `nodos.csv` | Identificadores y coordenadas de los nodos. |
+| `aristas.csv` | Conexiones dirigidas entre nodos y longitud de cada tramo. |
+| `lotes.csv` | Lotes disponibles, nodo asociado y factor de zona. |
+| `incidentes.csv` | Incidentes registrados, nodo, tipo y fecha. |
+| `parametros.json` | Presupuesto y parámetros de cada tipo de estación. |
 
-### Instancias
+### Tipos de incidentes
 
-  -----------------------------------------------------------------------------
-  Instancia          Nodos      Aristas   Incidentes        Lotes   Presupuesto
-                              dirigidas                              (millones)
-  ----------- ------------ ------------ ------------ ------------ -------------
-  `pequena`              9           22           18            5         6.000
+- Hurto.
+- Accidente.
+- Incendio.
 
-  `comuna`           2.893        6.782          913           15        12.000
+### Parámetros base
 
-  `ciudad`          27.568       67.330        5.300           80        40.000
-  -----------------------------------------------------------------------------
+| Tipo | Costo base (millones) | Radio de cobertura | Peso |
+|---|---:|---:|---:|
+| Hurto | 1.000 | 1.000 m | 1 |
+| Accidente | 2.000 | 2.000 m | 3 |
+| Incendio | 5.000 | 3.000 m | 5 |
 
-El programa debe cargar cualquier instancia con el mismo formato; no
-puede depender de IDs, cantidades o valores particulares.
+El costo de una estación se calcula multiplicando el costo base por el factor de zona del lote y aplicando el redondeo definido por la implementación.
 
-## 3. Parámetros y reglas del problema
+## 4. Reglas del problema
 
-En la instancia pequeña se verificaron estos parámetros:
+- Se puede construir máximo una estación por lote.
+- Se pueden construir varias estaciones del mismo tipo en lotes diferentes.
+- Una estación solo cubre incidentes de su mismo tipo.
+- Un incidente queda cubierto si la distancia mínima dirigida desde el nodo de la estación hasta el nodo del incidente no supera el radio de cobertura.
+- Si varias estaciones cubren el mismo incidente, este se cuenta una sola vez.
+- La suma de los costos de las estaciones no puede superar el presupuesto.
+- Los incidentes de un mismo tipo tienen la misma prioridad.
+- La fecha y hora del incidente no modifica su peso.
+- Se permite que los vehículos utilicen los carriles de Metroplús, según los supuestos del problema.
 
-  Tipo          Estación                         Costo base (millones)   Radio (m)   Peso
-  ------------- ------------------------------ ----------------------- ----------- ------
-  `hurto`       CAI                                              1.000       1.000      1
-  `accidente`   Estación de tránsito y grúas                     2.000       2.000      3
-  `incendio`    Estación de bomberos                             5.000       3.000      5
+## 5. Instancias disponibles
 
-Los valores efectivos deben leerse desde `parametros.json`, no
-codificarse para una sola instancia.
+| Instancia | Nodos | Aristas | Incidentes | Lotes | Presupuesto (millones) |
+|---|---:|---:|---:|---:|---:|
+| Pequeña | 9 | 22 | 18 | 5 | 6.000 |
+| Comuna | 2.893 | 6.782 | 913 | 15 | 12.000 |
+| Ciudad | 27.568 | 67.330 | 5.300 | 80 | 40.000 |
 
--   Se puede construir como máximo una estación por lote; un lote puede
-    quedar sin usar.
--   Se permiten estaciones del mismo tipo en lotes diferentes.
--   El costo es el costo base del tipo multiplicado por el factor de
-    zona del lote, redondeado al millón más cercano.
--   Debe verificarse la regla de redondeo en empates: `round()` de
-    Python usa redondeo al par.
--   Un incidente solo queda cubierto si coincide el tipo, existe una
-    ruta dirigida desde el nodo de la estación al nodo del incidente y
-    la distancia mínima es menor o igual al radio.
--   La dirección importa: se calcula desde la estación hacia el
-    incidente. No se usa distancia en línea recta.
--   Un incidente inaccesible en esa dirección no queda cubierto.
--   El valor de la solución es la suma de los pesos de los incidentes
-    cubiertos. Cada ID se cuenta una sola vez, aunque lo cubran varias
-    estaciones.
--   Supuestos del enunciado: los vehículos pueden usar carriles de
-    Metroplús; incidentes del mismo tipo tienen igual prioridad; la
-    fecha/hora no pondera la importancia.
+## 6. Estructura del proyecto
 
-Formalmente, una estación de tipo `t` ubicada en `s` cubre un incidente
-de tipo `t` en `v` si:
+La estructura de carpetas reportada para el desarrollo es:
 
-\[ d\_{`\text{dirigida}`{=tex}}(s,v) `\leq `{=tex}R(t) \]
-
-El valor de una solución es:
-
-\[ V(S)=`\sum`{=tex}\_{i`\in `{=tex}I(S)}
-w(`\operatorname{tipo}`{=tex}(i)) \]
-
-donde `I(S)` contiene los IDs únicos cubiertos.
-
-## 4. Entregables del enunciado
-
-### Parte 1: costos y coberturas
-
-Para cada lote y tipo de estación, calcular el costo y la lista ordenada
-de IDs cubiertos. La instancia `ciudad` debe procesarse en menos de un
-minuto. Es importante no ejecutar Dijkstra repetidamente para el mismo
-lote si sus distancias pueden reutilizarse entre tipos de estación.
-
-### Parte 2: heurísticas
-
-**2.1. Greedy base del profesor.** Selecciona iterativamente la estación
-con mayor valor adicional absoluto, respetando presupuesto y un máximo
-de una estación por lote. Desempata por código de lote y luego por tipo
-en el orden `hurto`, `accidente`, `incendio`.
-
-**2.2. Heurística propia.** El equipo debe diseñar una heurística que
-construya la solución seleccionando una estación a la vez y supere el
-valor del Greedy base en al menos una de las tres instancias. Debe
-aplicarse a pequeña, comuna y ciudad.
-
-La propuesta propia que se ha venido desarrollando es un **Greedy por
-eficiencia**:
-
-1.  Calcular el valor adicional de cada candidata respecto de los
-    incidentes ya cubiertos.
-2.  Dividir el valor adicional entre el costo.
-3.  Elegir la candidata factible con mayor relación valor/costo.
-4.  Actualizar estaciones seleccionadas, lotes ocupados, presupuesto e
-    IDs cubiertos.
-5.  Repetir mientras haya candidatas factibles que aporten valor.
-
-\[ E(l,t)=`\frac{\text{valor adicional}(l,t)}{\text{costo}(l,t)}`{=tex}
-\]
-
-El valor adicional excluye incidentes ya cubiertos. Se debe definir y
-documentar un desempate determinista. Esta heurística es la propuesta
-del equipo; no es el Greedy base. En código debe tener un nombre
-inequívoco, por ejemplo `greedy_eficiencia` o `heuristica_eficiencia`.
-
-**Contraejemplos.** Para cada heurística que pide el enunciado,
-construir manualmente una instancia de máximo seis nodos en la que no
-encuentre la mejor propuesta posible y explicar la decisión local que
-conduce al resultado inferior.
-
-### Parte 3: óptimo y comparación
-
-Se solicita obtener una solución de mayor valor garantizada para pequeña
-y comuna. Esto exige un método exacto; una heurística no garantiza
-optimalidad.
-
-Se está considerando **búsqueda exhaustiva mediante Backtracking con
-poda por presupuesto**. Solo se pueden podar ramas que no puedan
-producir una solución factible. Debe medirse su rendimiento y
-conservarse la garantía de optimalidad.
-
-Para cada instancia se comparan valor y tiempo de: - Greedy base del
-profesor. - Heurística propia. - Óptimo, cuando corresponda.
-
-Para ciudad se debe justificar con un cálculo y análisis de complejidad
-por qué no se reporta el óptimo si no es computacionalmente viable.
-
-La solución óptima de pequeña y comuna debe informar estaciones
-ordenadas por lote, costo total, casos cubiertos por tipo, valor y
-tiempo.
-
-**Advertencia:** con 15 lotes y cuatro alternativas por lote (no
-instalar o instalar uno de tres tipos), comuna tiene hasta
-(4\^{15}=1.073.741.824) asignaciones. Backtracking sencillo podría ser
-demasiado lento. Se deben evaluar podas más fuertes o un método exacto
-alternativo, sin perder la garantía.
-
-### Parte 4: mapas y propuesta
-
-Para ciudad, elegir una propuesta heurística y mostrar un mapa que
-distinga lotes sin usar, estaciones por tipo e incidentes cubiertos/no
-cubiertos. Acompañar con tabla de estación, lote, tipo, costo y casos
-cubiertos; costo total frente al presupuesto; casos por tipo; valor y
-justificación.
-
-Repetir mapa y tabla para la mejor propuesta posible de comuna (óptimo
-de la Parte 3). Los mapas son obligatorios. Una GUI adicional para la
-feria es opcional si el equipo decide competir.
-
-## 5. Arquitectura algorítmica
-
-### Algoritmos de soporte
-
--   **Construcción del grafo:** lista de adyacencia dirigida.
--   **Dijkstra:** distancias mínimas dirigidas desde el nodo de cada
-    lote.
--   **Cobertura:** filtra incidentes por tipo y radio.
--   **Costo:** aplica costo base y factor de zona.
--   **Valor:** suma pesos de IDs únicos cubiertos.
-
-Dijkstra no selecciona estaciones: es el componente de caminos mínimos
-que permite calcular coberturas.
-
-### Algoritmos de optimización
-
-1.  **Greedy base del profesor:** referencia requerida para comparación.
-2.  **Greedy propio por eficiencia:** heurística del equipo.
-3.  **Algoritmo exacto:** Backtracking con poda u otro método exacto que
-    garantice el óptimo en pequeña y comuna.
-
-## 6. Restricciones técnicas
-
-Implementación en Python. El enunciado permite `csv`, `json` y `pandas`
-para lectura; `heapq` para la cola de prioridad; y herramientas como
-`folium`, `matplotlib`, `streamlit` o `tkinter` para visualización,
-siempre que no calculen rutas, distancias en grafos o combinaciones.
-
-No utilizar `networkx`, `osmnx`, `scipy`, `itertools` ni otras librerías
-que resuelvan por el equipo los cálculos de rutas, distancias o
-combinaciones. La lógica algorítmica central debe ser propia.
-
-## 7. Estructura local de trabajo conocida
-
-``` text
+```text
 Proyecto_ADA - copia/
 ├── estaciones_alcaldia/
 │   ├── main.py
@@ -229,8 +80,9 @@ Proyecto_ADA - copia/
 │   │   ├── grafo.py
 │   │   ├── distancias.py
 │   │   ├── cobertura.py
-│   │   ├── greedy.py
-│   │   └── fuerza_bruta.py
+│   │   ├── greedy_base.py
+│   │   ├── heuristica_propia.py
+│   │   └── exacto.py
 │   ├── pruebas/
 │   └── README.md
 └── instancias/
@@ -239,174 +91,298 @@ Proyecto_ADA - copia/
     └── ciudad/
 ```
 
-Es la estructura local conocida durante el desarrollo; verificar los
-archivos reales antes de afirmar que todos existen o están terminados.
+Las instancias se encuentran fuera de la carpeta `estaciones_alcaldia`, dentro de la carpeta `instancias`.
 
-## 8. Implementación conocida y observaciones
+## 7. Implementación
 
--   `datos/lector_datos.py`: carga CSV y JSON, valida `pequena`,
-    `comuna` o `ciudad` y devuelve nodos, calles, lotes, incidentes y
-    parámetros. La clave de presupuesto es `presupuesto_millones`.
--   `algoritmos/grafo.py`: construye lista de adyacencia dirigida; no
-    agrega aristas inversas que no estén en los datos.
--   `algoritmos/distancias.py`: Dijkstra con `heapq`, devuelve
-    `nodo -> distancia mínima`; presupone longitudes no negativas.
--   `algoritmos/cobertura.py`: calcula costos, coberturas y valores. La
-    cobertura se mide desde el nodo de estación hacia el incidente.
--   `algoritmos/greedy.py`: una versión que se probó seleccionaba por
-    valor adicional/costo, por lo que era nuestra heurística propia
-    aunque la función se llamara `greedy_base`. Corregir el nombre para
-    no confundirla con la base del profesor.
--   `fuerza_bruta.py`: se propuso una búsqueda recursiva con
-    Backtracking, unión de conjuntos para evitar duplicados y poda por
-    presupuesto. Su existencia y ejecución satisfactoria deben
-    confirmarse; no asumir que ya está validada.
+### 7.1. Construcción del grafo
 
-**Optimización pendiente:** calcular Dijkstra una sola vez por lote y
-reutilizar el mapa de distancias para los tres tipos de estación. Cambia
-el radio y el filtro de tipo, no el nodo de origen. Esto evita hasta
-tres ejecuciones redundantes por lote y ayuda a cumplir el límite de
-ciudad.
+Archivo: `algoritmos/grafo.py`
 
-## 9. Resultados de la instancia pequeña registrados
+Se construye un grafo dirigido a partir de las conexiones de la red vial.
 
-### Costos y coberturas por lote
+Cada arista contiene:
 
-  Lote     Nodo   Factor Tipo          Costo (millones) IDs cubiertos
-  ------ ------ -------- ----------- ------------------ -------------------
-  L1          1      1,1 hurto                    1.100 7, 8, 12, 13
-  L1          1      1,1 accidente                2.200 1, 2, 3, 4
-  L1          1      1,1 incendio                 5.500 16, 17, 18
-  L2          3      1,5 hurto                    1.500 9, 10, 11, 12, 13
-  L2          3      1,5 accidente                3.000 3, 4, 5
-  L2          3      1,5 incendio                 7.500 16, 17, 18
-  L3          5      1,4 hurto                    1.400 8, 15
-  L3          5      1,4 accidente                2.800 1, 2, 4, 6
-  L3          5      1,4 incendio                 7.000 16, 17, 18
-  L4          6      1,5 hurto                    1.500 9, 10, 11, 14
-  L4          6      1,5 accidente                3.000 3, 5, 6
-  L4          6      1,5 incendio                 7.500 17, 18
-  L5          8      1,5 hurto                    1.500 14, 15
-  L5          8      1,5 accidente                3.000 3, 5, 6
-  L5          8      1,5 incendio                 7.500 17, 18
+- Nodo de origen.
+- Nodo de destino.
+- Longitud del tramo.
 
-Dos pruebas oficiales coinciden con estos resultados: L3 accidente
-cuesta 2.800 y cubre `[1, 2, 4, 6]`; L2 hurto cuesta 1.500 y cubre
-`[9, 10, 11, 12, 13]`.
+Las longitudes se manejan como valores numéricos de tipo `float`.
 
-### Heurística propia por eficiencia: ejecución registrada
+### 7.2. Cálculo de distancias
 
--   L1 accidente: costo 2.200, valor adicional 12, IDs `[1, 2, 3, 4]`.
--   L2 hurto: costo 1.500, valor adicional 5, IDs `[9, 10, 11, 12, 13]`.
--   L3 hurto: costo 1.400, valor adicional 2, IDs `[8, 15]`.
--   Costo total: 5.100 millones; presupuesto restante: 900 millones.
--   Valor total: 19.
--   IDs únicos cubiertos: `[1, 2, 3, 4, 8, 9, 10, 11, 12, 13, 15]`.
+Archivo: `algoritmos/distancias.py`
 
-Es un resultado local registrado y debe repetirse con la versión final
-del código.
+Se utiliza el algoritmo de Dijkstra implementado con `heapq` para calcular las distancias mínimas desde un nodo de origen.
 
-### Greedy base del profesor: resultados de referencia identificados
+El grafo es dirigido, por lo que las distancias se calculan respetando el sentido de las conexiones.
 
-**Pequeña:** L1 incendio; costo 5.500 millones; tres incendios
-cubiertos; valor 15.
+### 7.3. Cálculo de costos y cobertura
 
-**Comuna:** L05 accidente, L06 hurto, L08 accidente, L09 incendio, L13
-hurto, L14 hurto y L15 accidente; costo 11.950 millones; 486 hurtos, 296
-accidentes y 31 incendios; valor 1.529.
+Archivo: `algoritmos/cobertura.py`
 
-Verificar estos resultados con el notebook vigente antes de la entrega.
+Este módulo contiene las operaciones para:
 
-### Óptimo conocido de pequeña
+- Calcular el costo de una estación según el factor de zona.
+- Identificar los incidentes cubiertos por una estación.
+- Evaluar las alternativas de estación para cada lote.
+- Calcular el valor total de los incidentes cubiertos.
+- Calcular el valor adicional aportado por una nueva estación.
 
--   Estaciones: L1 hurto, L3 accidente y L4 hurto.
--   Costo: 5.400 millones.
--   Cobertura: 8 hurtos, 4 accidentes y 0 incendios.
--   Valor: 20.
+Los incidentes se almacenan en conjuntos para evitar contar varias veces un mismo identificador.
 
-El algoritmo exacto debe encontrar ese valor o una solución distinta
-empatada en el óptimo.
+### 7.4. Greedy base del profesor
 
-## 10. Validaciones necesarias
+Archivo: `algoritmos/greedy_base.py`
 
-1.  Carga correcta de las tres instancias.
-2.  Dirección de las aristas preservada.
-3.  Distancias mínimas de Dijkstra correctas.
-4.  Coincidencia del tipo de estación e incidente.
-5.  Radio inclusivo: `distancia <= radio_m`.
-6.  Incidentes no alcanzables en la dirección correcta no se cubren.
-7.  IDs repetidos se cuentan una sola vez.
-8.  Presupuesto nunca excedido.
-9.  Máximo una estación por lote.
-10. Algoritmo exacto devuelve valor 20 en pequeña.
-11. Parte 1 para ciudad termina en menos de un minuto.
-12. Tiempos comparativos medidos y reproducibles.
+Este algoritmo selecciona en cada iteración la estación que aporta el mayor valor adicional absoluto.
 
-## 11. Complejidad y análisis
+No divide el valor adicional por el costo.
 
-Sean `V` nodos, `E` aristas dirigidas, `L` lotes e `I` incidentes.
-Dijkstra con `heapq` tiene complejidad aproximada
-(O((V+E)`\log `{=tex}V)) por origen. Ejecutándolo una vez por lote, el
-costo de distancias es aproximadamente (O(L(V+E)`\log `{=tex}V)), más el
-trabajo de evaluar incidentes y tipos.
+Criterios de desempate:
 
-La heurística debe analizarse según sus iteraciones, candidatas y costo
-de calcular valores adicionales. El algoritmo exacto tiene un espacio de
-búsqueda exponencial: hasta (4\^L) asignaciones (no instalar o elegir
-uno de tres tipos por lote). La poda reduce ramas, pero no elimina en
-general el crecimiento exponencial.
+1. Menor código de lote.
+2. Orden de tipo: hurto, accidente e incendio.
 
-## 12. Rúbrica compartida
+El algoritmo respeta el presupuesto y evita seleccionar más de una estación en el mismo lote.
 
-  Criterio                          Peso
-  ------------------------------- ------
-  Modelado del grafo                10 %
-  Implementación de algoritmos      10 %
-  Comparación de algoritmos         10 %
-  Visualización geográfica           5 %
-  Calidad técnica                    5 %
-  Explicación de algoritmos         15 %
-  Uso de técnicas algorítmicas      10 %
-  Análisis de complejidad           10 %
-  Análisis de trade-offs            15 %
-  Claridad y dominio conceptual     10 %
+### 7.5. Heurística propia: eficiencia
 
-Explicación de algoritmos, trade-offs y claridad/dominio conceptual
-suman 45 % de la rúbrica.
+Archivo: `algoritmos/heuristica_propia.py`
 
-## 13. Sustentación
+La heurística propia utiliza una relación entre el valor adicional y el costo de cada estación.
 
-En la sustentación el equipo recibirá una nueva distribución de lotes y
-un nuevo histórico de incidentes con el mismo formato. El código debe
-procesarlos sin depender de las instancias actuales ni de resultados
-precalculados. El equipo debe poder explicar modelado, algoritmos,
-garantías, complejidad, decisiones y compromisos entre calidad de
-solución y tiempo.
+Su criterio es:
 
-## 14. Lista de trabajo pendiente
+**Eficiencia = valor adicional / costo**
 
--   [x] Lectura inicial de CSV y JSON.
--   [x] Construcción inicial del grafo dirigido.
--   [x] Implementación inicial de Dijkstra.
--   [x] Cálculo inicial de costos y coberturas.
--   [x] Pruebas de cobertura pequeña contrastadas con el notebook.
--   [x] Primera ejecución registrada de la heurística propia por
-    eficiencia.
--   [ ] Implementar y validar el Greedy base del profesor para
-    reproducir la referencia.
--   [ ] Diferenciar nombres de Greedy base y heurística propia.
--   [ ] Reutilizar una ejecución de Dijkstra por lote.
--   [ ] Construir contraejemplos manuales para las heurísticas.
--   [ ] Implementar y validar el óptimo de pequeña.
--   [ ] Medir y optimizar el método exacto para comuna.
--   [ ] Ejecutar base y heurística propia en las tres instancias.
--   [ ] Registrar tiempos reproducibles y completar la tabla
-    comparativa.
--   [ ] Generar mapas y tablas de ciudad y comuna.
--   [ ] Documentar complejidad, trade-offs y justificación.
--   [ ] Probar con una instancia nueva antes de la sustentación.
+En cada iteración se selecciona la alternativa factible con mayor eficiencia.
 
-**Regla de mantenimiento:** actualizar este documento cuando cambien la
-estructura real, los nombres de funciones, los resultados medidos o las
-decisiones de diseño. No marcar como terminado un componente que solo
-esté propuesto o que no se haya ejecutado y validado.
+Después de seleccionar una estación:
+
+- Se descuenta su costo del presupuesto.
+- Se marca su lote como utilizado.
+- Se actualiza el conjunto de incidentes cubiertos.
+
+Esta estrategia busca obtener un mayor aprovechamiento del presupuesto.
+
+### 7.6. Algoritmo exacto: fuerza bruta con poda
+
+Archivo: `algoritmos/exacto.py`
+
+La función `fuerza_bruta()` examina las alternativas de estación de cada lote.
+
+Para cada lote considera cuatro posibilidades:
+
+1. No construir una estación.
+2. Construir una estación de hurto.
+3. Construir una estación de accidentes.
+4. Construir una estación de incendios.
+
+El algoritmo combina las alternativas de todos los lotes y calcula el valor total de cada solución factible.
+
+Se utiliza una poda por presupuesto: cuando el costo acumulado supera el presupuesto disponible, se descarta esa rama de búsqueda.
+
+El algoritmo garantiza encontrar una solución óptima porque examina todas las combinaciones factibles.
+
+En caso de empate en valor, se prefiere la solución de menor costo.
+
+## 8. Resultados obtenidos
+
+### 8.1. Instancia pequeña
+
+Se realizaron pruebas de costos, cobertura y valor de incidentes.
+
+Algunos resultados de referencia:
+
+| Lote | Tipo | Costo (millones) | Incidentes cubiertos |
+|---|---|---:|---|
+| L1 | Hurto | 1.100 | 7, 8, 12, 13 |
+| L1 | Accidente | 2.200 | 1, 2, 3, 4 |
+| L1 | Incendio | 5.500 | 16, 17, 18 |
+| L2 | Hurto | 1.500 | 9, 10, 11, 12, 13 |
+| L3 | Accidente | 2.800 | 1, 2, 4, 6 |
+| L4 | Hurto | 1.500 | 9, 10, 11, 14 |
+| L5 | Hurto | 1.500 | 14, 15 |
+
+#### Resultados de los algoritmos
+
+| Algoritmo | Valor total | Costo total (millones) |
+|---|---:|---:|
+| Greedy base | 15 | 5.500 |
+| Heurística propia | 19 | 5.100 |
+| Exacto | 20 | 5.400 |
+
+La heurística propia obtiene un valor superior al Greedy base en esta instancia.
+
+El algoritmo exacto encuentra la solución óptima:
+
+| Lote | Tipo | Costo (millones) |
+|---|---|---:|
+| L1 | Hurto | 1.100 |
+| L3 | Accidente | 2.800 |
+| L4 | Hurto | 1.500 |
+| **Total** | | **5.400** |
+
+Resultado del algoritmo exacto:
+
+- Valor total: 20.
+- Costo total: 5.400 millones.
+- Presupuesto restante: 600 millones.
+- Incidentes cubiertos: 12.
+- Combinaciones completas evaluadas: 97.
+
+El resultado coincide con el valor óptimo de referencia de la instancia pequeña.
+
+#### Tiempos de ejecución
+
+Se midió el tiempo de ejecución de cada algoritmo utilizando `time.perf_counter()`.
+
+| Algoritmo | Tiempo (segundos) |
+|---|---:|
+| Greedy base | 0,000200 |
+| Heurística propia | 0,000232 |
+| Exacto | 0,000775 |
+
+En la instancia pequeña, el Greedy base presentó el menor tiempo de ejecución, seguido de la heurística propia y el algoritmo exacto.
+
+El algoritmo exacto tardó aproximadamente 3,9 veces más que el Greedy base, pero encontró la solución óptima, con un valor total de 20.
+
+La heurística propia obtuvo un buen equilibrio entre calidad de solución y tiempo de ejecución: alcanzó un valor de 19, superior al Greedy base, con un tiempo de ejecución cercano al de este.
+
+Estos resultados corresponden únicamente a la instancia pequeña. No deben generalizarse a las instancias comuna y ciudad.
+
+### 8.2. Instancia comuna
+
+Resultados obtenidos en las ejecuciones reportadas:
+
+| Algoritmo | Valor total | Costo total (millones) | Presupuesto restante |
+|---|---:|---:|---:|
+| Greedy base | 1.529 | 11.950 | 50 |
+| Heurística propia | 1.492 | 11.600 | 400 |
+
+El Greedy base obtiene 37 puntos más de valor que la heurística propia en esta instancia.
+
+La heurística propia utiliza 350 millones menos de presupuesto, pero obtiene un valor total inferior.
+
+El resultado del Greedy base coincide con la referencia oficial reportada para la instancia comuna.
+
+**Pendiente:** ejecutar y medir el algoritmo exacto en comuna. No se ha validado todavía su resultado ni su tiempo de ejecución.
+
+### 8.3. Instancia ciudad
+
+La instancia ciudad contiene 80 lotes.
+
+La búsqueda exhaustiva tiene un máximo teórico de:
+
+4^80 combinaciones.
+
+Por su crecimiento exponencial, la fuerza bruta no resulta práctica para esta instancia.
+
+Se deben ejecutar y comparar las dos estrategias voraces en ciudad, y justificar la inviabilidad del algoritmo exacto mediante el análisis de complejidad y las mediciones disponibles.
+
+**Pendiente:** consolidar los resultados de los tres algoritmos y las mediciones de tiempo de ciudad.
+
+## 9. Complejidad y análisis
+
+### Dijkstra
+
+La implementación utiliza una cola de prioridad mediante `heapq`.
+
+Su complejidad habitual con listas de adyacencia y cola de prioridad es:
+
+O((V + E) log V)
+
+donde:
+
+- V es la cantidad de nodos.
+- E es la cantidad de aristas.
+
+### Greedy base
+
+En cada iteración se revisan las alternativas de los lotes que todavía no han sido utilizados.
+
+La cantidad de iteraciones está limitada por el número de lotes, porque se selecciona máximo una estación por lote.
+
+### Heurística propia
+
+Tiene una estructura de búsqueda voraz similar a la del Greedy base, pero cambia el criterio de selección: maximiza la relación entre valor adicional y costo.
+
+### Algoritmo exacto
+
+Con L lotes y tres tipos de estación, existen hasta:
+
+4^L combinaciones.
+
+La poda por presupuesto reduce la cantidad de ramas exploradas, pero no elimina el crecimiento exponencial.
+
+Por esto, el algoritmo exacto es apropiado para instancias pequeñas y puede resultar inviable para instancias grandes.
+
+## 10. Restricciones técnicas
+
+La implementación utiliza Python y las herramientas permitidas para el proyecto.
+
+Se utilizan:
+
+- `csv` y `json` para lectura de datos.
+- `pandas` para manipulación de datos cuando corresponde.
+- `heapq` para la cola de prioridad de Dijkstra.
+- `time` para medir tiempos de ejecución.
+
+No se utilizan librerías externas para resolver rutas, distancias o combinaciones de optimización.
+
+Se deben respetar las restricciones del enunciado respecto a librerías como `networkx`, `osmnx`, `scipy` e `itertools`.
+
+## 11. Visualización
+
+Está pendiente completar:
+
+- Mapa de la instancia ciudad.
+- Identificación de lotes utilizados y no utilizados.
+- Ubicación de las estaciones seleccionadas por tipo.
+- Visualización de incidentes cubiertos y no cubiertos.
+- Tabla de estaciones con lote, tipo, costo y casos cubiertos.
+- Resumen de presupuesto, valor y cobertura por tipo de incidente.
+- Mapa y tabla de la mejor solución de la instancia comuna.
+
+## 12. Pruebas pendientes
+
+- [x] Construcción del grafo en pequeña y comuna.
+- [x] Manejo de longitudes decimales en las aristas.
+- [x] Pruebas de cobertura y costos en pequeña.
+- [x] Verificación de resultados de cobertura con la referencia disponible.
+- [x] Ejecución del Greedy base.
+- [x] Ejecución de la heurística propia.
+- [x] Comparación de Greedy base y heurística propia en pequeña y comuna.
+- [x] Ejecución del algoritmo exacto en pequeña.
+- [x] Validación del valor óptimo de 20 en pequeña.
+- [ ] Medición y registro de tiempos de los tres algoritmos en las instancias.
+- [ ] Evaluación del algoritmo exacto en comuna.
+- [ ] Ejecución y comparación final en ciudad.
+- [ ] Contraejemplo manual de máximo seis nodos para cada heurística.
+- [ ] Mapas y tablas de resultados para ciudad y comuna.
+- [ ] Pruebas de procesamiento de nuevos lotes e incidentes sin depender de IDs fijos.
+
+## 13. Consideraciones para la sustentación
+
+Durante la sustentación se debe explicar:
+
+1. Cómo se representa la red vial mediante un grafo dirigido.
+2. Cómo se calculan las distancias mínimas.
+3. Cómo se determina la cobertura de una estación.
+4. Cómo se calcula el valor adicional de una alternativa.
+5. En qué se diferencia el Greedy base de la heurística propia.
+6. Cómo funciona la búsqueda exacta y la poda por presupuesto.
+7. Por qué el algoritmo exacto no es práctico para la instancia ciudad.
+8. Qué ventajas y limitaciones tiene cada estrategia.
+9. Cómo se procesan nuevos datos sin depender de identificadores o valores fijos.
+
+## 14. Estado general del proyecto
+
+El proyecto ya cuenta con la construcción del grafo, el cálculo de distancias, la evaluación de costos y cobertura, dos algoritmos voraces y un algoritmo exacto mediante fuerza bruta con poda.
+
+El algoritmo exacto fue validado en la instancia pequeña y encontró el valor óptimo esperado de 20, con un costo de 5.400 millones.
+
+Los resultados de Greedy base y de la heurística propia ya fueron obtenidos para pequeña y comuna.
+
+Todavía falta completar las mediciones de tiempo, evaluar la viabilidad del exacto en comuna, consolidar los resultados de ciudad y terminar las visualizaciones requeridas.

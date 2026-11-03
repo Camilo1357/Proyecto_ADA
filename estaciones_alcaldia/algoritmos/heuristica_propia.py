@@ -1,13 +1,10 @@
 
 from typing import Any
 
-from algoritmos.cobertura import (
-    evaluar_lote,
-    calcular_valor_adicional
-)
+from algoritmos.cobertura import (evaluar_lote,calcular_valor_adicional)
 
 
-def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, str]],incidentes: list[dict[str, str]],parametros: dict[str, Any]) -> dict[str, Any]:
+def greedy_eficiencia(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, str]],incidentes: list[dict[str, str]],parametros: dict[str, Any]) -> dict[str, Any]:
     """
     Selecciona estaciones usando el criterio de eficiencia:
 
