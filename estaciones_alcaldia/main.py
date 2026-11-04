@@ -1,16 +1,12 @@
+
 import time
 from typing import Any
 
 from datos.lector_datos import cargar_instancia
 from algoritmos.grafo import construir_grafo
-from algoritmos.cobertura import (
-    evaluar_lote,
-    calcular_valor,
-    calcular_valor_adicional
-)
+from algoritmos.cobertura import evaluar_lote
 from algoritmos.greedy_base import greedy_base
 from algoritmos.heuristica_propia import greedy_eficiencia
-from algoritmos.exacto import fuerza_bruta
 
 
 def main() -> None:
@@ -19,31 +15,42 @@ def main() -> None:
     # 1. CARGA DE DATOS
     # -------------------------------------------------
 
-    # Cambia "pequena" por "comuna" o "ciudad" para
-    # ejecutar los algoritmos sobre otra instancia.
-    nombre_instancia: str = "comuna"
+    nombre_instancia: str = "ciudad"
 
     datos: dict[str, Any] = cargar_instancia(nombre_instancia)
-
     parametros: dict[str, Any] = datos["parametros"]
+
+    print("\n========== INFORMACIÓN DE LA INSTANCIA ==========")
+    print("Instancia:", nombre_instancia)
+    print("Cantidad de lotes:", len(datos["lotes"]))
+    print("Cantidad de incidentes:", len(datos["incidentes"]))
+    print("Cantidad de tramos:", len(datos["calles"]))
 
     # -------------------------------------------------
     # 2. CONSTRUCCIÓN DEL GRAFO
     # -------------------------------------------------
 
+    inicio_grafo = time.perf_counter()
+
     grafo = construir_grafo(datos["calles"])
 
-    print("\n========== INFORMACIÓN DEL GRAFO ==========")
-    print("Instancia:", nombre_instancia)
+    tiempo_grafo = time.perf_counter() - inicio_grafo
+
+    print("\n========== CONSTRUCCIÓN DEL GRAFO ==========")
     print("Cantidad de nodos:", len(grafo))
     print(
         "Cantidad de tramos:",
         sum(len(vecinos) for vecinos in grafo.values())
     )
+    print("Tiempo:", round(tiempo_grafo, 6), "segundos")
 
     # -------------------------------------------------
-    # 3. EVALUACIÓN DE LOS LOTES (PARTE 1)
+    # 3. EVALUACIÓN DE LOTES (PARTE 1)
     # -------------------------------------------------
+
+    inicio_evaluacion = time.perf_counter()
+
+    cantidad_alternativas = 0
 
     for lote in datos["lotes"]:
 
@@ -54,62 +61,21 @@ def main() -> None:
             datos["incidentes"]
         )
 
-        print(f"\nLote {lote['lote']} (nodo {lote['nodo']}):")
+        cantidad_alternativas += len(resultados)
 
-        for tipo, resultado in resultados.items():
+    tiempo_evaluacion = time.perf_counter() - inicio_evaluacion
 
-            print(f"\n  Tipo: {tipo}")
-            print(f"  Estación: {resultado['estacion']}")
-            print(f"  Costo: {resultado['costo']} millones")
-            print(
-                "  Incidentes cubiertos:",
-                sorted(resultado["incidentes_cubiertos"])
-            )
-
-    # -------------------------------------------------
-    # 4. PRUEBA DEL CÁLCULO DEL VALOR
-    # -------------------------------------------------
-
-    incidentes_cubiertos: set[int] = {1, 2, 4, 6}
-
-    valor = calcular_valor(
-        incidentes_cubiertos,
-        datos["incidentes"],
-        parametros
+    print("\n========== EVALUACIÓN DE LOTES (PARTE 1) ==========")
+    print("Lotes evaluados:", len(datos["lotes"]))
+    print("Alternativas evaluadas:", cantidad_alternativas)
+    print("Tiempo total:", round(tiempo_evaluacion, 6), "segundos")
+    print(
+        "¿Cumple el límite de 60 segundos?:",
+        "SÍ" if tiempo_evaluacion < 60 else "NO"
     )
 
-    print("\n========== PRUEBA DEL CÁLCULO DEL VALOR ==========")
-    print("Incidentes cubiertos:", sorted(incidentes_cubiertos))
-    print("Valor obtenido:", valor)
-
-    # Esta prueba de referencia utiliza IDs de la instancia pequeña.
-    if nombre_instancia == "pequena":
-        print("Valor esperado: 12")
-
     # -------------------------------------------------
-    # 5. PRUEBA DEL VALOR ADICIONAL
-    # -------------------------------------------------
-
-    incidentes_ya_cubiertos: set[int] = {1, 2, 4}
-    incidentes_nueva_estacion: set[int] = {2, 4, 6}
-
-    valor_adicional = calcular_valor_adicional(
-        incidentes_nueva_estacion,
-        incidentes_ya_cubiertos,
-        datos["incidentes"],
-        parametros
-    )
-
-    print("\n========== PRUEBA DEL VALOR ADICIONAL ==========")
-    print("Ya estaban cubiertos:", sorted(incidentes_ya_cubiertos))
-    print("Nueva estación cubre:", sorted(incidentes_nueva_estacion))
-    print("Valor adicional obtenido:", valor_adicional)
-
-    if nombre_instancia == "pequena":
-        print("Valor esperado: 3")
-
-    # -------------------------------------------------
-    # 6. EJECUCIÓN DEL GREEDY BASE DEL PROFESOR
+    # 4. EJECUCIÓN DEL GREEDY BASE
     # -------------------------------------------------
 
     inicio_base = time.perf_counter()
@@ -123,21 +89,11 @@ def main() -> None:
 
     tiempo_base = time.perf_counter() - inicio_base
 
-    print("\n========== RESULTADO GREEDY BASE ==========")
-
-    for estacion in resultado_base["estaciones_seleccionadas"]:
-
-        print("\nLote:", estacion["lote"])
-        print("Tipo:", estacion["tipo"])
-        print("Estación:", estacion["estacion"])
-        print("Costo:", estacion["costo"], "millones")
-        print("Valor adicional:", estacion["valor_adicional"])
-        print(
-            "Incidentes cubiertos:",
-            sorted(estacion["incidentes_cubiertos"])
-        )
-
     print("\n========== RESUMEN GREEDY BASE ==========")
+    print(
+        "Estaciones seleccionadas:",
+        len(resultado_base["estaciones_seleccionadas"])
+    )
     print("Costo total:", resultado_base["costo_total"], "millones")
     print(
         "Presupuesto restante:",
@@ -145,14 +101,14 @@ def main() -> None:
         "millones"
     )
     print("Valor total:", resultado_base["valor_total"])
-    print("Tiempo:", round(tiempo_base, 6), "segundos")
     print(
         "Incidentes cubiertos:",
-        sorted(resultado_base["incidentes_cubiertos"])
+        len(resultado_base["incidentes_cubiertos"])
     )
+    print("Tiempo:", round(tiempo_base, 6), "segundos")
 
     # -------------------------------------------------
-    # 7. EJECUCIÓN DE NUESTRA HEURÍSTICA PROPIA
+    # 5. EJECUCIÓN DE LA HEURÍSTICA PROPIA
     # -------------------------------------------------
 
     inicio_eficiencia = time.perf_counter()
@@ -166,123 +122,73 @@ def main() -> None:
 
     tiempo_eficiencia = time.perf_counter() - inicio_eficiencia
 
-    print("\n========== RESULTADO HEURÍSTICA PROPIA ==========")
-
-    for estacion in resultado_eficiencia["estaciones_seleccionadas"]:
-
-        print("\nLote:", estacion["lote"])
-        print("Tipo:", estacion["tipo"])
-        print("Estación:", estacion["estacion"])
-        print("Costo:", estacion["costo"], "millones")
-        print("Valor adicional:", estacion["valor_adicional"])
-        print("Eficiencia:", round(estacion["eficiencia"], 6))
-        print(
-            "Incidentes cubiertos:",
-            sorted(estacion["incidentes_cubiertos"])
-        )
-
     print("\n========== RESUMEN HEURÍSTICA PROPIA ==========")
-    print("Costo total:", resultado_eficiencia["costo_total"], "millones")
+    print(
+        "Estaciones seleccionadas:",
+        len(resultado_eficiencia["estaciones_seleccionadas"])
+    )
+    print(
+        "Costo total:",
+        resultado_eficiencia["costo_total"],
+        "millones"
+    )
     print(
         "Presupuesto restante:",
         resultado_eficiencia["presupuesto_restante"],
         "millones"
     )
     print("Valor total:", resultado_eficiencia["valor_total"])
+    print(
+        "Incidentes cubiertos:",
+        len(resultado_eficiencia["incidentes_cubiertos"])
+    )
     print("Tiempo:", round(tiempo_eficiencia, 6), "segundos")
-    print(
-        "Incidentes cubiertos:",
-        sorted(resultado_eficiencia["incidentes_cubiertos"])
-    )
 
     # -------------------------------------------------
-    # 8. EJECUCIÓN DEL ALGORITMO EXACTO
-    # -------------------------------------------------
-
-    inicio_exacto = time.perf_counter()
-
-    resultado_exacto = fuerza_bruta(
-        grafo,
-        datos["lotes"],
-        datos["incidentes"],
-        parametros
-    )
-
-    tiempo_exacto = time.perf_counter() - inicio_exacto
-
-    print("\n========== RESULTADO ALGORITMO EXACTO ==========")
-
-    for estacion in resultado_exacto["estaciones_seleccionadas"]:
-
-        print("\nLote:", estacion["lote"])
-        print("Tipo:", estacion["tipo"])
-        print("Estación:", estacion["estacion"])
-        print("Costo:", estacion["costo"], "millones")
-        print(
-            "Incidentes cubiertos:",
-            sorted(estacion["incidentes_cubiertos"])
-        )
-
-    print("\n========== RESUMEN ALGORITMO EXACTO ==========")
-    print("Costo total:", resultado_exacto["costo_total"], "millones")
-    print(
-        "Presupuesto restante:",
-        resultado_exacto["presupuesto_restante"],
-        "millones"
-    )
-    print("Valor total:", resultado_exacto["valor_total"])
-    print(
-        "Incidentes cubiertos:",
-        sorted(resultado_exacto["incidentes_cubiertos"])
-    )
-    print(
-        "Combinaciones evaluadas:",
-        resultado_exacto["combinaciones_evaluadas"]
-    )
-    print("Tiempo:", round(tiempo_exacto, 6), "segundos")
-
-    # -------------------------------------------------
-    # 9. COMPARACIÓN DE LOS TRES ALGORITMOS
+    # 6. COMPARACIÓN DE RESULTADOS
     # -------------------------------------------------
 
     print("\n========== COMPARACIÓN DE RESULTADOS ==========")
 
     print(
-        f"{'Métrica':<25}"
-        f"{'Greedy base':>15}"
-        f"{'Eficiencia':>15}"
-        f"{'Exacto':>15}"
+        f"{'Métrica':<30}"
+        f"{'Greedy base':>18}"
+        f"{'Heurística propia':>22}"
     )
 
     print("-" * 70)
 
     print(
-        f"{'Valor total':<25}"
-        f"{resultado_base['valor_total']:>15}"
-        f"{resultado_eficiencia['valor_total']:>15}"
-        f"{resultado_exacto['valor_total']:>15}"
+        f"{'Valor total':<30}"
+        f"{resultado_base['valor_total']:>18}"
+        f"{resultado_eficiencia['valor_total']:>22}"
     )
 
     print(
-        f"{'Costo total':<25}"
-        f"{resultado_base['costo_total']:>15}"
-        f"{resultado_eficiencia['costo_total']:>15}"
-        f"{resultado_exacto['costo_total']:>15}"
+        f"{'Costo total':<30}"
+        f"{resultado_base['costo_total']:>18}"
+        f"{resultado_eficiencia['costo_total']:>22}"
     )
 
     print(
-        f"{'Presupuesto restante':<25}"
-        f"{resultado_base['presupuesto_restante']:>15}"
-        f"{resultado_eficiencia['presupuesto_restante']:>15}"
-        f"{resultado_exacto['presupuesto_restante']:>15}"
+        f"{'Presupuesto restante':<30}"
+        f"{resultado_base['presupuesto_restante']:>18}"
+        f"{resultado_eficiencia['presupuesto_restante']:>22}"
     )
 
     print(
-        f"{'Tiempo (segundos)':<25}"
-        f"{tiempo_base:>15.6f}"
-        f"{tiempo_eficiencia:>15.6f}"
-        f"{tiempo_exacto:>15.6f}"
+        f"{'Incidentes cubiertos':<30}"
+        f"{len(resultado_base['incidentes_cubiertos']):>18}"
+        f"{len(resultado_eficiencia['incidentes_cubiertos']):>22}"
     )
+
+    print(
+        f"{'Tiempo (segundos)':<30}"
+        f"{tiempo_base:>18.6f}"
+        f"{tiempo_eficiencia:>22.6f}"
+    )
+
+    print("\n========== FIN DE LA EJECUCIÓN ==========")
 
 
 if __name__ == "__main__":

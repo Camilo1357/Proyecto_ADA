@@ -1,0 +1,6 @@
+origen,destino,longitud_m,nombre
+1,4,100,Tramo 1-4
+1,5,100,Tramo 1-5
+2,4,100,Tramo 2-4
+3,5,100,Tramo 3-5
+3,6,100,Tramo 3-6

@@ -3,38 +3,30 @@ from typing import Any
 
 from algoritmos.cobertura import (
     evaluar_lote,
-    construir_valores_incidentes,
-    calcular_valor_rapido
+    construir_valores_incidentes
 )
 
 
-def fuerza_bruta(
-    grafo: dict[int, list[tuple[int, int]]],
-    lotes: list[dict[str, str]],
-    incidentes: list[dict[str, str]],
-    parametros: dict[str, Any]
-) -> dict[str, Any]:
+def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str, str]],incidentes: list[dict[str, str]],parametros: dict[str, Any]) -> dict[str, Any]:
     """
-    Busca la combinación óptima de estaciones mediante backtracking.
+    Encuentra la solución óptima mediante fuerza bruta con Backtracking.
 
-    Maximiza el valor de los incidentes cubiertos sin superar
-    el presupuesto y respetando la restricción de una estación
-    como máximo por lote.
-
-    Incluye:
+    Optimizaciones:
+    - Ordenamiento de lotes por potencial de cobertura.
+    - Ordenamiento de alternativas por valor potencial.
     - Poda por presupuesto.
-    - Poda por valor máximo posible.
-    - Cálculo rápido del valor de incidentes.
+    - Poda por valor máximo restante.
+    - Modificación y restauración de conjuntos durante la recursión.
+
+    No utiliza Greedy ni soluciones iniciales heurísticas.
     """
 
     # ---------------------------------------------------------
     # 1. Preparar los datos
     # ---------------------------------------------------------
 
-    # Construimos una sola vez el diccionario de valores.
     valores_incidentes: dict[int, int] = construir_valores_incidentes(
-        incidentes,
-        parametros
+        incidentes, parametros
     )
 
     presupuesto: int = int(parametros["presupuesto_millones"])
@@ -43,176 +35,314 @@ def fuerza_bruta(
     # 2. Construir las alternativas de cada lote
     # ---------------------------------------------------------
 
-    alternativas_por_lote: list[list[dict[str, Any] | None]] = []
+    alternativas_por_lote: list[list[dict[str, Any]]] = []
 
     for lote in lotes:
 
-        resultados: dict[str, dict[str, Any]] = evaluar_lote(
-            grafo,
-            lote,
-            parametros,
-            incidentes
+        resultados = evaluar_lote(
+            grafo, lote, parametros, incidentes
         )
 
-        # None representa no construir una estación.
-        alternativas: list[dict[str, Any] | None] = [None]
+        alternativas: list[dict[str, Any]] = []
 
         for tipo, resultado in resultados.items():
+
+            ids_cubiertos: set[int] = set(
+                resultado["incidentes_cubiertos"]
+            )
+
+            valor_potencial: int = sum(
+                valores_incidentes.get(id_incidente, 0)
+                for id_incidente in ids_cubiertos
+            )
 
             alternativas.append({
                 "lote": lote["lote"],
                 "tipo": tipo,
                 "estacion": resultado["estacion"],
-                "costo": resultado["costo"],
-                "incidentes_cubiertos": set(
-                    resultado["incidentes_cubiertos"]
-                )
+                "costo": int(resultado["costo"]),
+                "incidentes_cubiertos": ids_cubiertos,
+                "valor_potencial": valor_potencial
             })
 
         alternativas_por_lote.append(alternativas)
 
-    # Usamos la cantidad real de listas de alternativas.
     cantidad_lotes: int = len(alternativas_por_lote)
 
     # ---------------------------------------------------------
-    # 3. Preparar los límites superiores de valor
+    # 3. Ordenar los lotes por potencial de cobertura
     # ---------------------------------------------------------
 
-    # valor_maximo_restante[i] contiene todos los incidentes
-    # que podrían cubrirse utilizando los lotes desde i en adelante.
+    alternativas_por_lote.sort(
+        key=lambda alternativas: max(
+            (alternativa["valor_potencial"]
+             for alternativa in alternativas),
+            default=0
+        ),
+        reverse=True
+    )
+
+    # ---------------------------------------------------------
+    # 4. Ordenar las alternativas de cada lote
+    # ---------------------------------------------------------
+
+    for alternativas in alternativas_por_lote:
+
+        alternativas.sort(
+            key=lambda alternativa: alternativa["valor_potencial"],
+            reverse=True
+        )
+
+    # ---------------------------------------------------------
+    # 5. Preparar la mejor solución conocida
+    # ---------------------------------------------------------
+
+    # Empezamos con la solución vacía.
+    # No se construye ninguna solución mediante Greedy.
+
+    mejor_valor: int = 0
+    mejor_costo: int = 0
+
+    mejores_estaciones: list[dict[str, Any]] = []
+    mejores_incidentes: set[int] = set()
+
+    # ---------------------------------------------------------
+    # 6. Calcular los incidentes posibles desde cada posición
+    # ---------------------------------------------------------
+
     valor_maximo_restante: list[set[int]] = [
         set() for _ in range(cantidad_lotes + 1)
     ]
 
     for indice in range(cantidad_lotes - 1, -1, -1):
 
-        incidentes_posibles: set[int] = (
+        posibles: set[int] = (
             valor_maximo_restante[indice + 1].copy()
         )
 
         for alternativa in alternativas_por_lote[indice]:
 
-            if alternativa is not None:
-                incidentes_posibles.update(
-                    alternativa["incidentes_cubiertos"]
-                )
+            posibles.update(
+                alternativa["incidentes_cubiertos"]
+            )
 
-        valor_maximo_restante[indice] = incidentes_posibles
+        valor_maximo_restante[indice] = posibles
 
     # ---------------------------------------------------------
-    # 4. Variables para guardar la mejor solución
+    # 7. Variables de seguimiento
     # ---------------------------------------------------------
-
-    mejor_valor: int = -1
-    mejor_costo: int = 0
-
-    mejores_estaciones: list[dict[str, Any]] = []
-    mejores_incidentes: set[int] = set()
 
     combinaciones_evaluadas: int = 0
-    ramas_podadas: int = 0
+    nodos_visitados: int = 0
+
+    ramas_podadas_presupuesto: int = 0
+    ramas_podadas_valor: int = 0
+
+    incidentes_actuales: set[int] = set()
+    estaciones_actuales: list[dict[str, Any]] = []
 
     # ---------------------------------------------------------
-    # 5. Backtracking con podas
+    # 8. Backtracking
     # ---------------------------------------------------------
 
-    def explorar_combinaciones(indice_lote: int,costo_actual: int,incidentes_actuales: set[int],estaciones_actuales: list[dict[str, Any]]) -> None:
+    def explorar_combinaciones(
+        indice_lote: int,
+        costo_actual: int,
+        valor_actual: int
+    ) -> None:
 
         nonlocal mejor_valor
         nonlocal mejor_costo
         nonlocal mejores_estaciones
         nonlocal mejores_incidentes
         nonlocal combinaciones_evaluadas
-        nonlocal ramas_podadas
+        nonlocal nodos_visitados
+        nonlocal ramas_podadas_presupuesto
+        nonlocal ramas_podadas_valor
 
-        # Poda 1: presupuesto.
+        nodos_visitados += 1
+
+        # -----------------------------------------------------
+        # Poda 1: presupuesto
+        # -----------------------------------------------------
+
         if costo_actual > presupuesto:
-            ramas_podadas += 1
+
+            ramas_podadas_presupuesto += 1
             return
 
-        # Poda 2: valor máximo que todavía podría alcanzarse.
-        # La unión incluye los incidentes actuales y todos los
-        # que podrían cubrirse con los lotes pendientes.
-        incidentes_posibles: set[int] = (incidentes_actuales |valor_maximo_restante[indice_lote])
+        # -----------------------------------------------------
+        # Poda 2: valor máximo restante
+        # -----------------------------------------------------
 
-        valor_posible: int = calcular_valor_rapido(incidentes_posibles,valores_incidentes)
+        incidentes_pendientes: set[int] = (
+            valor_maximo_restante[indice_lote]
+            - incidentes_actuales
+        )
 
-        # Si no puede superar la mejor solución, descartamos.
-        # Usamos < y no <= para permitir desempatar por menor costo.
-        if valor_posible < mejor_valor:
-            ramas_podadas += 1
+        valor_adicional_maximo: int = sum(
+            valores_incidentes.get(id_incidente, 0)
+            for id_incidente in incidentes_pendientes
+        )
+
+        valor_posible: int = (
+            valor_actual + valor_adicional_maximo
+        )
+
+        # Si esta rama no puede superar la mejor solución,
+        # no tiene sentido continuar explorándola.
+
+        if (
+            valor_posible < mejor_valor
+            or (
+                valor_posible == mejor_valor
+                and costo_actual >= mejor_costo
+            )
+        ):
+
+            ramas_podadas_valor += 1
             return
 
-        # Si ya procesamos todos los lotes, evaluamos la solución.
+        # -----------------------------------------------------
+        # Caso base: todos los lotes fueron procesados
+        # -----------------------------------------------------
+
         if indice_lote == cantidad_lotes:
 
             combinaciones_evaluadas += 1
 
-            valor_actual: int = calcular_valor_rapido(incidentes_actuales,valores_incidentes)
-
-            # Maximizamos el valor.
-            # En empate, preferimos menor costo.
-            if (valor_actual > mejor_valor or (valor_actual == mejor_valor and costo_actual < mejor_costo)):
+            if (
+                valor_actual > mejor_valor
+                or (
+                    valor_actual == mejor_valor
+                    and costo_actual < mejor_costo
+                )
+            ):
 
                 mejor_valor = valor_actual
                 mejor_costo = costo_actual
 
-                mejores_estaciones = estaciones_actuales.copy()
-                mejores_incidentes = incidentes_actuales.copy()
+                mejores_estaciones = (
+                    estaciones_actuales.copy()
+                )
+
+                mejores_incidentes = (
+                    incidentes_actuales.copy()
+                )
+
             return
 
         # -----------------------------------------------------
-        # 6. Explorar las alternativas del lote actual
+        # 9. Explorar las alternativas del lote actual
         # -----------------------------------------------------
 
-        alternativas: list[dict[str, Any] | None] = (alternativas_por_lote[indice_lote])
+        alternativas: list[dict[str, Any]] = (
+            alternativas_por_lote[indice_lote]
+        )
 
         for alternativa in alternativas:
 
-            # Opción 1: no instalar estación.
-            if alternativa is None:
-                explorar_combinaciones(indice_lote + 1,costo_actual,incidentes_actuales,estaciones_actuales)
+            nuevo_costo: int = (
+                costo_actual + alternativa["costo"]
+            )
+
+            # Descartar si supera el presupuesto.
+
+            if nuevo_costo > presupuesto:
+
+                ramas_podadas_presupuesto += 1
                 continue
 
-            # Obtenemos el costo de la estación.
-            costo_nuevo: int = int(alternativa["costo"])
+            # Identificar únicamente los incidentes nuevos.
 
-            # Si supera el presupuesto, descartamos la alternativa.
-            if costo_actual + costo_nuevo > presupuesto:
-                ramas_podadas += 1
-                continue
-
-            # Unimos los incidentes sin duplicar sus identificadores.
             nuevos_incidentes: set[int] = (
-                incidentes_actuales |
                 alternativa["incidentes_cubiertos"]
+                - incidentes_actuales
             )
 
-            # Agregamos la estación a la solución parcial.
-            nuevas_estaciones: list[dict[str, Any]] = (
-                estaciones_actuales + [alternativa]
+            # No instalar una estación que no aporte cobertura.
+
+            if not nuevos_incidentes:
+                continue
+
+            ganancia: int = sum(
+                valores_incidentes.get(id_incidente, 0)
+                for id_incidente in nuevos_incidentes
             )
 
-            # Continuamos con el siguiente lote.
-            explorar_combinaciones(indice_lote + 1,costo_actual + costo_nuevo,nuevos_incidentes,nuevas_estaciones)
+            # Agregar temporalmente la alternativa.
 
+            incidentes_actuales.update(nuevos_incidentes)
+            estaciones_actuales.append(alternativa)
+
+            explorar_combinaciones(
+                indice_lote + 1,
+                nuevo_costo,
+                valor_actual + ganancia
+            )
+
+            # Restaurar el estado para explorar otra alternativa.
+
+            estaciones_actuales.pop()
+
+            incidentes_actuales.difference_update(
+                nuevos_incidentes
+            )
+
+        # -----------------------------------------------------
+        # 10. Explorar la opción de no instalar estación
+        # -----------------------------------------------------
+
+        explorar_combinaciones(
+            indice_lote + 1,
+            costo_actual,
+            valor_actual
+        )
 
     # ---------------------------------------------------------
-    # 7. Iniciar la búsqueda
+    # 11. Ejecutar la búsqueda
     # ---------------------------------------------------------
 
-    explorar_combinaciones(0,0,set(),[])
+    explorar_combinaciones(0, 0, 0)
+
+    # Ordenar la solución por código de lote.
+
+    mejores_estaciones.sort(
+        key=lambda estacion: estacion["lote"]
+    )
 
     # ---------------------------------------------------------
-    # 8. Devolver los resultados
+    # 12. Preparar la salida
     # ---------------------------------------------------------
+
+    estaciones_resultado: list[dict[str, Any]] = []
+
+    for alternativa in mejores_estaciones:
+
+        estaciones_resultado.append({
+            "lote": alternativa["lote"],
+            "tipo": alternativa["tipo"],
+            "estacion": alternativa["estacion"],
+            "costo": alternativa["costo"],
+            "incidentes_cubiertos": (
+                alternativa["incidentes_cubiertos"].copy()
+            )
+        })
+
+    ramas_podadas: int = (
+        ramas_podadas_presupuesto
+        + ramas_podadas_valor
+    )
 
     return {
-        "estaciones_seleccionadas": mejores_estaciones,
+        "estaciones_seleccionadas": estaciones_resultado,
         "incidentes_cubiertos": mejores_incidentes,
         "costo_total": mejor_costo,
         "presupuesto_restante": presupuesto - mejor_costo,
         "valor_total": mejor_valor,
         "combinaciones_evaluadas": combinaciones_evaluadas,
-        "ramas_podadas": ramas_podadas
+        "nodos_visitados": nodos_visitados,
+        "ramas_podadas": ramas_podadas,
+        "ramas_podadas_presupuesto": ramas_podadas_presupuesto,
+        "ramas_podadas_valor": ramas_podadas_valor
     }

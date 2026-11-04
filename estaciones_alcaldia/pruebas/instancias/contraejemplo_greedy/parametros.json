@@ -1,0 +1,23 @@
+{
+    "presupuesto_millones": 2000,
+    "tipos": {
+        "hurto": {
+            "estacion": "CAI",
+            "costo_base": 1000,
+            "radio_m": 1000,
+            "peso": 1
+        },
+        "accidente": {
+            "estacion": "Tránsito",
+            "costo_base": 2000,
+            "radio_m": 2000,
+            "peso": 3
+        },
+        "incendio": {
+            "estacion": "Bomberos",
+            "costo_base": 5000,
+            "radio_m": 3000,
+            "peso": 5
+        }
+    }
+}
