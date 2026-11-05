@@ -72,17 +72,14 @@ def evaluar_lote(grafo: dict[int, list[tuple[int, int]]],lote: dict[str, str],pa
     factor_zona: float = float(lote["factor_zona"])
 
     # Una sola ejecución de Dijkstra para este lote.
-    distancias: dict[int, int] = distancias_desde(grafo, nodo_lote)
+    distancias: dict[int, float] = distancias_desde(grafo, nodo_lote)
 
     resultados: dict[str, dict[str, Any]] = {}
 
     for tipo, configuracion in parametros["tipos"].items():
 
-        costo: int = calcular_costo(
-            factor_zona,
-            int(configuracion["costo_base"])
-        )
-
+        costo: int = calcular_costo(factor_zona,int(configuracion["costo_base"]))
+  
         radio_m: int = int(configuracion["radio_m"])
 
         cubiertos: list[int] = []

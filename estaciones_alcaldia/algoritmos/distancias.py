@@ -35,10 +35,7 @@ def distancias_desde(grafo: dict[int, list[tuple[int, float]]],origen: int) -> d
             nueva_distancia: float = distancia_actual + longitud
 
             # Actualizamos si encontramos una ruta mejor.
-            if (
-                vecino not in distancias
-                or nueva_distancia < distancias[vecino]
-            ):
+            if (vecino not in distancias or nueva_distancia < distancias[vecino]):
 
                 distancias[vecino] = nueva_distancia
 

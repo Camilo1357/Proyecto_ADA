@@ -1,10 +1,7 @@
 
 from typing import Any
 
-from algoritmos.cobertura import (
-    evaluar_lote,
-    calcular_valor_adicional
-)
+from algoritmos.cobertura import (evaluar_lote,calcular_valor_adicional)
 
 
 def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, str]],incidentes: list[dict[str, str]],parametros: dict[str, Any]) -> dict[str, Any]:
@@ -35,11 +32,7 @@ def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, st
     lotes_utilizados: set[str] = set()
 
     # Orden de tipos establecido por el profesor para desempatar.
-    orden_tipos: list[str] = [
-        "hurto",
-        "accidente",
-        "incendio"
-    ]
+    orden_tipos: list[str] = ["hurto","accidente","incendio"]
 
     # Calculamos las alternativas de cada lote una sola vez.
     alternativas_por_lote: dict[str, dict[str, dict[str, Any]]] = {}

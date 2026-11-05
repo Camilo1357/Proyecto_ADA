@@ -30,10 +30,7 @@ def cargar_instancia(nombre: str = "pequena") -> dict[str, Any]:
     nombres_validos: set[str] = {"pequena", "comuna", "ciudad"}
 
     if nombre not in nombres_validos:
-        raise ValueError(
-            f"Instancia desconocida: {nombre}. "
-            "Usa pequena, comuna o ciudad."
-        )
+        raise ValueError(f"Instancia desconocida: {nombre}. ""Usa pequena, comuna o ciudad.")
 
     # Construimos la ruta a la instancia seleccionada.
     carpeta: Path = CARPETA_INSTANCIAS / nombre

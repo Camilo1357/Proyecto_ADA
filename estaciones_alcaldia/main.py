@@ -30,9 +30,7 @@ def main() -> None:
 
     # Verificar que exista el archivo de dependencias.
     if not ruta_requirements.exists():
-        raise FileNotFoundError(
-            f"No se encontró el archivo: {ruta_requirements}"
-        )
+        raise FileNotFoundError(    f"No se encontró el archivo: {ruta_requirements}")
 
     # Comprobar si Folium está instalado.
     if importlib.util.find_spec("folium") is None:
