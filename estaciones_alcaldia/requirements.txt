@@ -1,0 +1,2 @@
+# Visualización de mapas interactivos
+folium>=0.20.0,<1.0.0
