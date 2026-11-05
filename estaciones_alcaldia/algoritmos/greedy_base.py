@@ -3,7 +3,7 @@ from typing import Any
 
 from algoritmos.cobertura import (evaluar_lote,calcular_valor_adicional)
 
-
+#Seleccionar la estación que aporte el mayor valor adicional absoluto.
 def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, str]],incidentes: list[dict[str, str]],parametros: dict[str, Any]) -> dict[str, Any]:
     """
     Selecciona estaciones usando la heurística base del profesor.
@@ -114,17 +114,14 @@ def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, st
 
         # Marcamos el lote como utilizado.
         lotes_utilizados.add(mejor_alternativa["lote"])
+        #agrega un valor
 
         # Unimos los nuevos incidentes con los que ya estaban cubiertos.
         incidentes_ya_cubiertos.update(mejor_alternativa["incidentes_cubiertos"])
+        #agrega un conjunto
 
     # Calculamos el valor total de la propuesta.
-    valor_total: int = calcular_valor_adicional(
-        incidentes_ya_cubiertos,
-        set(),
-        incidentes,
-        parametros
-    )
+    valor_total: int = calcular_valor_adicional(incidentes_ya_cubiertos,set(),incidentes,parametros)
 
     # Devolvemos el mismo formato general de resultados de la heurística propia.
     return {
