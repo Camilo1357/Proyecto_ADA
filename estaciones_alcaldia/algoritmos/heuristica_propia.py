@@ -115,3 +115,130 @@ def greedy_eficiencia(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[s
         "presupuesto_restante": presupuesto,
         "valor_total": valor_total
     }
+
+# ============================================================
+# COMPLEJIDAD TEMPORAL DE greedy_eficiencia
+# ============================================================
+
+# Definiciones:
+# L = número de lotes
+# E = número de aristas del grafo
+# I = número de incidentes
+# A = número de tipos de estación (A = 3)
+
+
+# 1. PRECALCULAR ALTERNATIVAS:
+
+# T1: evaluar_lote para cada lote:
+# O(E log E + I)
+
+# Se ejecuta una vez por cada uno de los L lotes:
+# O(L * (E log E + I))
+
+
+# 2. ORDENAR LOS LOTES:
+
+# T2: ordenar los lotes por código:
+# O(L log L)
+
+
+# 3. CICLO VORAZ (WHILE):
+
+# El while puede ejecutarse como máximo L veces,
+# porque cada iteración selecciona un lote diferente.
+
+# En cada iteración:
+# T3: recorrer los L lotes y sus A alternativas:
+# O(L * A)
+
+# T4: calcular el valor adicional de cada alternativa:
+# O(I)
+
+# Por tanto, en cada iteración:
+# O(L * A * I)
+
+# Como el while puede ejecutarse como máximo L veces:
+# O(L * L * A * I)
+
+# Como A = 3 es constante:
+# O(L² * I)
+
+# T5: actualizar el conjunto de incidentes cubiertos:
+# O(I) por iteración, como máximo L iteraciones.
+# O(L * I)
+
+# Este costo ya queda incluido en O(L² * I).
+
+
+# 4. CÁLCULOS FINALES:
+
+# T6: calcular el valor total revisando los incidentes:
+# O(I)
+
+# T7: sumar los costos de las estaciones seleccionadas:
+# O(L)
+
+
+# 5. COMPLEJIDAD TEMPORAL TOTAL:
+
+# Sumamos todas las partes:
+
+# O(L * (E log E + I))
+# + O(L log L)
+# + O(L² * I)
+# + O(L * I)
+# + O(I)
+# + O(L)
+
+# Desarrollando:
+
+# TEMPORAL = O(LE log E + LI + L log L + L²I + LI + I + L)
+
+# Simplificando:
+
+# TEMPORAL = O(LE log E + L²I)
+
+
+# ============================================================
+# COMPLEJIDAD ESPACIAL DE greedy_eficiencia
+# ============================================================
+
+# 1. ALMACENAMIENTO DEL GRAFO:
+
+# El grafo almacena V nodos y E aristas:
+# O(V + E)
+
+
+# 2. ALTERNATIVAS PRECALCULADAS:
+
+# Se almacenan las alternativas de cada lote.
+# Cada lote tiene A alternativas y cada alternativa
+# puede almacenar hasta I incidentes cubiertos.
+
+# O(L * A * I)
+
+# Como A = 3 es constante:
+# O(L * I)
+
+
+# 3. CONJUNTOS Y LISTAS AUXILIARES:
+
+# incidentes_ya_cubiertos:
+# O(I)
+
+# lotes_utilizados:
+# O(L)
+
+# estaciones_seleccionadas:
+# O(L)
+
+
+# 4. COMPLEJIDAD ESPACIAL TOTAL:
+
+# Sumamos todas las estructuras:
+
+# O(V + E + LI + I + L)
+
+# Simplificando:
+
+# ESPACIAL = O(V + E + LI)

@@ -215,7 +215,8 @@ def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, st
 #
 # TEMPORAL = O(LE log E + LI + L log L + L²I + LI + I + L)
 #
-# # O(LE log E + L²I + L log L)
+# simplificado:
+# # O(LE log E + L²I)
 
 
 # ============================================================
@@ -287,6 +288,9 @@ def greedy_base(grafo: dict[int, list[tuple[int, int]]],lotes: list[dict[str, st
 #
 # O(V + E + LI + L + I)
 #
+# simplificado: 
+#
+# O(V + E + LI)
 # ============================================================
 
 
