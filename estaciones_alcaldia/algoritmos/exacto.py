@@ -25,9 +25,7 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
     # 1. Preparar los datos
     # ---------------------------------------------------------
 
-    valores_incidentes: dict[int, int] = construir_valores_incidentes(
-        incidentes, parametros
-    )
+    valores_incidentes: dict[int, int] = construir_valores_incidentes(incidentes, parametros)
 
     presupuesto: int = int(parametros["presupuesto_millones"])
 
@@ -39,17 +37,13 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
 
     for lote in lotes:
 
-        resultados = evaluar_lote(
-            grafo, lote, parametros, incidentes
-        )
+        resultados = evaluar_lote(grafo, lote, parametros, incidentes)
 
         alternativas: list[dict[str, Any]] = []
 
         for tipo, resultado in resultados.items():
 
-            ids_cubiertos: set[int] = set(
-                resultado["incidentes_cubiertos"]
-            )
+            ids_cubiertos: set[int] = set(resultado["incidentes_cubiertos"])
 
             valor_potencial: int = sum(
                 valores_incidentes.get(id_incidente, 0)
@@ -77,8 +71,7 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
         key=lambda alternativas: max(
             (alternativa["valor_potencial"]
              for alternativa in alternativas),
-            default=0
-        ),
+            default=0),
         reverse=True
     )
 
@@ -116,15 +109,11 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
 
     for indice in range(cantidad_lotes - 1, -1, -1):
 
-        posibles: set[int] = (
-            valor_maximo_restante[indice + 1].copy()
-        )
+        posibles: set[int] = (valor_maximo_restante[indice + 1].copy())
 
         for alternativa in alternativas_por_lote[indice]:
 
-            posibles.update(
-                alternativa["incidentes_cubiertos"]
-            )
+            posibles.update(alternativa["incidentes_cubiertos"])
 
         valor_maximo_restante[indice] = posibles
 
@@ -145,11 +134,7 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
     # 8. Backtracking
     # ---------------------------------------------------------
 
-    def explorar_combinaciones(
-        indice_lote: int,
-        costo_actual: int,
-        valor_actual: int
-    ) -> None:
+    def explorar_combinaciones(indice_lote: int,costo_actual: int,valor_actual: int) -> None:
 
         nonlocal mejor_valor
         nonlocal mejor_costo
@@ -175,31 +160,21 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
         # Poda 2: valor máximo restante
         # -----------------------------------------------------
 
-        incidentes_pendientes: set[int] = (
-            valor_maximo_restante[indice_lote]
-            - incidentes_actuales
-        )
+        incidentes_pendientes: set[int] = (valor_maximo_restante[indice_lote] - incidentes_actuales)
 
         valor_adicional_maximo: int = sum(
             valores_incidentes.get(id_incidente, 0)
             for id_incidente in incidentes_pendientes
         )
 
-        valor_posible: int = (
-            valor_actual + valor_adicional_maximo
-        )
+        valor_posible: int = (valor_actual + valor_adicional_maximo)
 
         # Si esta rama no puede superar la mejor solución,
         # no tiene sentido continuar explorándola.
 
-        if (
-            valor_posible < mejor_valor
-            or (
-                valor_posible == mejor_valor
-                and costo_actual >= mejor_costo
-            )
+        if (valor_posible < mejor_valor
+            or (valor_posible == mejor_valor and costo_actual >= mejor_costo)
         ):
-
             ramas_podadas_valor += 1
             return
 
@@ -211,24 +186,16 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
 
             combinaciones_evaluadas += 1
 
-            if (
-                valor_actual > mejor_valor
-                or (
-                    valor_actual == mejor_valor
-                    and costo_actual < mejor_costo
-                )
+            if (valor_actual > mejor_valor
+                or (valor_actual == mejor_valor and costo_actual < mejor_costo)
             ):
 
                 mejor_valor = valor_actual
                 mejor_costo = costo_actual
 
-                mejores_estaciones = (
-                    estaciones_actuales.copy()
-                )
+                mejores_estaciones = (estaciones_actuales.copy())
 
-                mejores_incidentes = (
-                    incidentes_actuales.copy()
-                )
+                mejores_incidentes = (incidentes_actuales.copy())
 
             return
 
@@ -236,15 +203,11 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
         # 9. Explorar las alternativas del lote actual
         # -----------------------------------------------------
 
-        alternativas: list[dict[str, Any]] = (
-            alternativas_por_lote[indice_lote]
-        )
+        alternativas: list[dict[str, Any]] = (alternativas_por_lote[indice_lote])
 
         for alternativa in alternativas:
 
-            nuevo_costo: int = (
-                costo_actual + alternativa["costo"]
-            )
+            nuevo_costo: int = (costo_actual + alternativa["costo"])
 
             # Descartar si supera el presupuesto.
 
@@ -255,49 +218,33 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
 
             # Identificar únicamente los incidentes nuevos.
 
-            nuevos_incidentes: set[int] = (
-                alternativa["incidentes_cubiertos"]
-                - incidentes_actuales
-            )
+            nuevos_incidentes: set[int] = (alternativa["incidentes_cubiertos"] - incidentes_actuales)
 
             # No instalar una estación que no aporte cobertura.
 
             if not nuevos_incidentes:
                 continue
 
-            ganancia: int = sum(
-                valores_incidentes.get(id_incidente, 0)
-                for id_incidente in nuevos_incidentes
-            )
+            ganancia: int = sum(valores_incidentes.get(id_incidente, 0) for id_incidente in nuevos_incidentes)
 
             # Agregar temporalmente la alternativa.
 
             incidentes_actuales.update(nuevos_incidentes)
             estaciones_actuales.append(alternativa)
 
-            explorar_combinaciones(
-                indice_lote + 1,
-                nuevo_costo,
-                valor_actual + ganancia
-            )
+            explorar_combinaciones(indice_lote + 1,nuevo_costo,valor_actual + ganancia)
 
             # Restaurar el estado para explorar otra alternativa.
 
             estaciones_actuales.pop()
 
-            incidentes_actuales.difference_update(
-                nuevos_incidentes
-            )
+            incidentes_actuales.difference_update(nuevos_incidentes)
 
         # -----------------------------------------------------
         # 10. Explorar la opción de no instalar estación
         # -----------------------------------------------------
 
-        explorar_combinaciones(
-            indice_lote + 1,
-            costo_actual,
-            valor_actual
-        )
+        explorar_combinaciones(indice_lote + 1,costo_actual,valor_actual)
 
     # ---------------------------------------------------------
     # 11. Ejecutar la búsqueda
@@ -307,9 +254,7 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
 
     # Ordenar la solución por código de lote.
 
-    mejores_estaciones.sort(
-        key=lambda estacion: estacion["lote"]
-    )
+    mejores_estaciones.sort(key=lambda estacion: estacion["lote"])
 
     # ---------------------------------------------------------
     # 12. Preparar la salida
