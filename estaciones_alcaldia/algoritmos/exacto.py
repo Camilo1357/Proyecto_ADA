@@ -172,9 +172,7 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
         # Si esta rama no puede superar la mejor solución,
         # no tiene sentido continuar explorándola.
 
-        if (valor_posible < mejor_valor
-            or (valor_posible == mejor_valor and costo_actual >= mejor_costo)
-        ):
+        if (valor_posible < mejor_valor or (valor_posible == mejor_valor and costo_actual >= mejor_costo)):
             ramas_podadas_valor += 1
             return
 
@@ -186,9 +184,7 @@ def fuerza_bruta(grafo: dict[int, list[tuple[int, float]]],lotes: list[dict[str,
 
             combinaciones_evaluadas += 1
 
-            if (valor_actual > mejor_valor
-                or (valor_actual == mejor_valor and costo_actual < mejor_costo)
-            ):
+            if (valor_actual > mejor_valor or (valor_actual == mejor_valor and costo_actual < mejor_costo)):
 
                 mejor_valor = valor_actual
                 mejor_costo = costo_actual
